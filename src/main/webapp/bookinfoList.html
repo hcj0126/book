@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>图书信息列表</title>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <!--MiniUI-->
+    <link href="/js/miniui/themes/default/miniui.css" rel="stylesheet" type="text/css" />
+    <script src="/js/miniui/miniui.js" type="text/javascript"></script>
+    <script src="/js/boot.js" type="text/javascript"></script>
+
+    <!--引入layer-->
+    <script src="js/layerJs/layer.js"></script>
+</head>
+<body>
+<h1>图书信息列表</h1>
+<div style="width:100%;">
+    <div class="mini-toolbar" style="border-bottom:0;padding:0px;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:100%;">
+                    <a class="mini-button" iconCls="icon-add" onclick="add()">增加</a>
+                    <a class="mini-button" iconCls="icon-edit" onclick="edit()">编辑</a>
+                    <a class="mini-button" iconCls="icon-remove" onclick="remove()">删除</a>
+                    <a class="mini-button" iconCls="icon-borrow" onclick="borrow()">借阅</a>
+                    <a class="mini-button" iconCls="icon-zoomin" onclick="bookinfoDetails()">详情</a>
+                </td>
+                <td style="white-space:nowrap;">
+                    <label>图书名称</label>
+                    <input id="bookname" class="mini-textbox" emptyText="请输入图书名称" style="width:150px;" onenter="onKeyEnter"/>
+                    <label>&nbsp;&nbsp;图书类别</label>
+                    <input id="booktype" class="mini-combobox" emptyText="请选择..." style="width:100px;" textField="name" valueField="id" url="/bookinfo?method=getAllBooktype" />
+                    <a onclick="seach()" class="mini-button" iconCls="icon-search" id="seach">查询</a>
+                </td>
+            </tr>
+        </table> 归还
+    </div>
+</div>
+<div id="datagrid1" class="mini-datagrid" style="width:100%;height:480px;"
+     url="bookinfo?method=getBookinfoList"  idField="bookid" allowResize="true"
+     pageSize="10" sizeList="[10,20,50,100]">
+    <div property="columns">
+        <div type="checkcolumn" ></div>
+        <div type="indexcolumn" headerAlign="center" align="center">序号</div>
+        <div field="bookname" width="120" headerAlign="center" align="center" allowSort="true">图书名称</div>
+        <div field="publisher" width="120" headerAlign="center" align="center" allowSort="true">出版社</div>
+        <div field="author" width="100" renderer="onGenderRenderer" align="center" headerAlign="center">作者</div>
+        <div field="booktypeStr" width="100" allowSort="true" align="center">图书类别</div>
+        <div field="remain" width="50" allowSort="true" align="center">剩余数量</div>
+    </div>
+</div>
+<script>
+
+    mini.parse();
+    // 获取图书列表页的div
+    var grid = mini.get("datagrid1");
+    // 加载数据
+    grid.load();
+
+    // 条件搜索点击事件
+    function seach(){
+        var bookname = mini.get("bookname").getValue();
+        var booktype = mini.get("booktype").getValue();
+        // 加载数据
+        grid.load({bookname:bookname,booktype:booktype});
+    }
+
+    // 图书列表信息新增按钮
+    function add(){
+        mini.open({
+            targetWindow: window,
+            url:"/addBookinfo.html",
+            title: "新增图书信息", width: 500, height: 250,
+            onload: function () {
+                var iframe = this.getIFrameEl();
+                var data = { action: "new" };
+                iframe.contentWindow.SetData(data);
+            },
+            ondestroy: function (action) {
+                // 重新加载数据
+                grid.reload();
+            }
+        });
+    }
+    // 图书列表信息修改按钮
+    function edit() {
+        var row = grid.getSelected();
+        if (row) {
+            mini.open({
+                url: "/updateBookinfo.html",
+                title: "编辑图书信息", width: 500, height: 250,
+                onload: function () {
+                    var iframe = this.getIFrameEl();
+                    var data = { action: "edit", id: row.bookid };
+                    iframe.contentWindow.SetData(data);
+
+                },
+                ondestroy: function (action) {
+                    grid.reload();
+                }
+            });
+
+        } else {
+            alert("请选中一条记录");
+        }
+    }
+    // 图书列表信息删除按钮
+    function remove() {
+        var rows = grid.getSelecteds();
+        if (rows.length > 0) {
+            if (confirm("确定删除选中记录？")) {
+                var ids = [];
+                for (var i = 0, l = rows.length; i < l; i++) {
+                    var r = rows[i];
+                    ids.push(r.bookid);
+                }
+                var id = ids.join(',');
+                // alert(id);
+                // grid.loading("操作中，请稍后......");
+                $.ajax({
+                    url: "bookinfo?method=deleteBookinfoByBookid&id="+id,
+                    dataType:'json',
+                    success: function (text) {
+                        if(text.ok){
+                            layer.msg(text.msg,{icon:6});
+                            grid.reload();
+                        }else{
+                            layer.msg(text.msg);
+                            grid.reload();
+                        }
+                    },
+                    error: function () {
+                    }
+                });
+            }
+        } else {
+            layer.msg("请选中一条记录");
+        }
+    }
+
+
+    // 当图书的剩余数量≤10本时，设置列表中剩余数量字段的字体颜色为红色加粗
+    grid.on("drawcell", function (e) {
+        var field = e.field;
+        var value = e.value;
+
+        if(field == 'remain' && value <= 10){
+            // console.log(field,value);
+            e.cellStyle = "color:red;font-weight:bold";
+        }
+    });
+
+    // 图书信息借阅按钮
+    function borrow(){
+        var row = grid.getSelected();
+        if (row) {
+            mini.open({
+                targetWindow: window,
+                url:"/insertBorrowinfo.html",
+                title: "添加借阅信息", width: 330, height: 230,
+                onload: function () {
+                    var iframe = this.getIFrameEl();
+                    var data = { action: "borrow",id: row.bookid};
+                    iframe.contentWindow.SetData(data);
+                },
+                ondestroy: function (action) {
+                    // 重新加载数据
+                    grid.reload();
+                }
+            });
+        }else{
+            layer.msg("请选中一条记录");
+        }
+    }
+
+    // 图书信息详情按钮
+    function bookinfoDetails(){
+        var row = grid.getSelected();
+        if (row) {
+            mini.open({
+                url: "/bookinfoDetail.html",
+                title: "图书信息详情", width: 500, height: 250,
+                onload: function () {
+                    var iframe = this.getIFrameEl();
+                    var data = { action: "detail", id: row.bookid };
+                    iframe.contentWindow.SetData(data);
+
+                },
+                ondestroy: function (action) {
+                    grid.reload();
+                }
+            });
+
+        } else {
+            alert("请选中一条记录");
+        }
+    }
+</script>
+</body>
+</html>

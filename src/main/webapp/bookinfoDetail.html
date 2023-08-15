@@ -1,0 +1,99 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>图书信息详情</title>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <!--MiniUI-->
+    <link href="/js/miniui/themes/default/miniui.css" rel="stylesheet" type="text/css" />
+    <script src="/js/miniui/miniui.js" type="text/javascript"></script>
+    <script src="/js/boot.js" type="text/javascript"></script>
+
+    <!--引入layer-->
+    <script src="js/layerJs/layer.js"></script>
+    <style>
+        html, body {
+            padding:0;
+            margin:0;
+            border:0;
+            height:100%;
+            overflow:hidden;
+        }
+    </style>
+</head>
+<body>
+<form id="form1" method="post">
+    <input type="hidden" class="mini-hidden" id="min-1" name="bookid" tabindex="0"/>
+    <div style="padding-left:11px;padding-bottom:5px;">
+
+    </div>
+    <fieldset style="border:solid 1px #aaa;padding:3px;">
+        <legend>基本信息</legend>
+        <div style="padding:5px;">
+            <table style="table-layout:fixed;">
+                <tr>
+                    <td style="width:80px;">图书名称</td>
+                    <td style="width:150px;">
+                        <input type="text" readonly name="bookname" class="mini-textbox" emptyText="请输入图书名称"  required="true"/>
+                    </td>
+                    <td style="width:80px;">出版社</td>
+                    <td style="width:150px;">
+                        <input type="text" readonly name="publisher" class="mini-textbox" emptyText="请输入出版社" required="true"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>作者</td>
+                    <td>
+                        <input readonly type="text" name="author" class="mini-textbox" emptyText="请输入作者" required="true"/>
+                    </td>
+                    <td>图书类别</td>
+                    <td>
+                        <input name="booktype" readonly required="true" class="mini-combobox" emptyText="请选择..." style="width:100px;" textField="name" valueField="id" url="/bookinfo?method=getAllBooktype" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>剩余数量</td>
+                    <td>
+                        <input readonly type="text" name="remain" class="mini-textbox" emptyText="请输入数量" required="true"/>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </fieldset>
+</form>
+<script>
+    mini.parse();
+    // 提交表单数据
+    var form = new mini.Form("#form1");
+
+    // 标准方法接口定义
+    function SetData(data) {
+        if (data.action == "detail") {
+            //跨页面传递的数据对象，克隆后才可以安全使用
+            data = mini.clone(data);
+            $.ajax({
+                url: "/bookinfo?method=getBookinfoByBookid&bookid=" + data.id,
+                cache: false,
+                success: function (text) {
+                    var o = mini.decode(text);
+                    form.setData(o);
+                    form.setChanged(false);
+
+                    onDeptChanged();
+                    mini.getbyName("position").setValue(o.position);
+                }
+            });
+        }
+    }
+
+    function onDeptChanged(e) {
+        var deptCombo = mini.getbyName("dept_id");
+        var positionCombo = mini.getbyName("position");
+        var dept_id = deptCombo.getValue();
+
+        positionCombo.load("../data/AjaxService.jsp?method=GetPositionsByDepartmenId&id=" + dept_id);
+        positionCombo.setValue("");
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>借阅信息列表</title>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <!--MiniUI-->
+    <link href="/js/miniui/themes/default/miniui.css" rel="stylesheet" type="text/css" />
+    <script src="/js/miniui/miniui.js" type="text/javascript"></script>
+    <script src="/js/boot.js" type="text/javascript"></script>
+
+    <!--引入layer-->
+    <script src="js/layerJs/layer.js"></script>
+</head>
+<body>
+<h1>借阅信息列表</h1>
+<div style="width:100%;">
+    <div class="mini-toolbar" style="border-bottom:0;padding:0px;">
+        <table style="width:100%;">
+            <tr>
+                <td style="width:100%;">
+                    <a class="mini-button" iconCls="icon-add" onclick="add()">新增</a>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+<div id="datagrid1" class="mini-datagrid" style="width:100%;height:480px;"
+     url="borrowinfo?method=getBorrowinfoList"  idField="borrowid" allowResize="true"
+     pageSize="10" sizeList="[10,20,50,100]">
+    <div property="columns">
+        <div type="checkcolumn" ></div>
+       <!-- <div type="indexcolumn" ></div>-->
+        <div field="borrowid" width="100" headerAlign="center" align="center" allowSort="true">借阅号</div>
+        <div field="bookid" width="50" headerAlign="center" align="center" allowSort="true">图书名称</div>
+        <div field="borrower" width="50" renderer="onGenderRenderer" align="center" headerAlign="center">借阅人</div>
+        <div field="phone" width="60" headerAlign="center"  align="center" allowSort="true">联系电话</div>
+        <div field="borrowtime"  width="80" headerAlign="center" align="center" allowSort="true">借阅时间</div>
+        <div field="returntime"  width="80" headerAlign="center" align="center" allowSort="true">归还时间</div>
+        <div name="action" width="120" headerAlign="center" align="center" renderer="onActionRenderer" cellStyle="padding:0;">操作</div>
+    </div>
+</div>
+<script>
+
+    mini.parse();
+    // 获取图书列表页的div
+    var grid = mini.get("datagrid1");
+    // 加载数据
+    grid.load();
+
+    // 图书列表信息新增按钮
+    function add(){
+        mini.open({
+            targetWindow: window,
+            url:"/addBorrowinfo.html",
+            title: "新增借阅信息", width: 500, height: 420,
+            onload: function () {
+                var iframe = this.getIFrameEl();
+                var data = { action: "new" };
+                iframe.contentWindow.SetData(data);
+            },
+            ondestroy: function (action) {
+                // 重新加载数据
+                grid.reload();
+            }
+        });
+    }
+
+    /**
+     * 如果图书尚未归还，展示“还书”按钮，点击后可以归还当前的图书
+     * 如果图书已归还，则展示“删除”按钮，则点击后，可删除借阅信息
+     */
+    function onActionRenderer(e) {
+        var row = e.row;
+        var s = '';
+        if(row.back == '1'){  // 0:未归还   1:已归还
+            s ='<a class="Edit_Button" href="javascript:deleteBorrowinfo(\'' + row.borrowid + '\')">删除</a>';
+
+        }else{
+            s = '<a class="Delete_Button" href="javascript:returnBook(\'' + row.borrowid + '\')">还书</a>';
+        }
+        return s;
+    }
+
+    // 还书
+    function returnBook(borrowid){
+        // alert(1);
+        $.get('/borrowinfo?method=returnBookinfoByBorrowid',{borrowid:borrowid},function (data){
+            if(data.ok){
+                alert(data.msg);
+            }
+            //重新加载数据
+            grid.reload();
+        },'json');
+    }
+
+    // 删除借阅信息
+    function deleteBorrowinfo(borrowid){
+        $.get('/borrowinfo?method=deleteBorrowinfoByBorrowid',{borrowid:borrowid},function (data){
+            if(data.ok){
+                alert(data.msg);
+            }
+            // 重新加载数据
+            grid.reload();
+        },'json');
+    }
+
+    // 把中国当前时间转换程 yyyy-MM-dd hh:mm:ss
+    function getDate(date){
+        const dd = new Date(date)
+        const y = dd.getFullYear()
+        const m = dd.getMonth() + 1 < 10 ? '0' + (dd.getMonth() + 1) : dd.getMonth() + 1 // 获取当前月份的日期，不足10补0
+        const d = dd.getDate() < 10 ? '0' + dd.getDate() : dd.getDate() // 获取当前几号，不足10补0
+        const h = dd.getHours() < 10 ? '0' + dd.getHours() : dd.getHours() //获取当前小时，小于10补0
+        const mi = dd.getMinutes() < 10 ? '0' + dd.getMinutes() : dd.getMinutes() //获取当前分钟数，不足10补0
+        const ss = dd.getSeconds() < 10 ? '0' + dd.getSeconds() : dd.getSeconds() //获取当前秒数，不足10补0
+        return {
+            fullDate: y + '-' + m + '-' + d + ' ' + h + ':' + mi + ':' + ss,
+            year: y,
+            month: m,
+            date: d,
+            hour: h,
+            minutes: mi,
+            day: dd.getDay()
+        }
+    }
+
+    // 条件过滤
+    grid.on("drawcell", function (e) {
+
+        var field = e.field;
+        var value = e.value;
+        var column = e.column;
+
+        // 日期格式化
+        if (field == 'borrowtime' || field == 'returntime') {
+            var time = getDate(value).fullDate;
+            // console.log(time);
+            // console.log(mini.isDate(time));
+            // String==>Date
+            var date = new Date(time);
+            // console.log(mini.isDate(date));
+            if (mini.isDate(date)){
+                e.cellHtml = mini.formatDate(date, "yyyy-MM-dd hh:mm:ss");
+            }
+        }
+    });
+</script>
+</body>
+</html>

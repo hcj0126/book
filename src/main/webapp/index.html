@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title></title>
+    <link rel="stylesheet" href="/css/pintuer.css"/>
+    <link rel="stylesheet" href="/css/admin.css">
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <!--MiniUI-->
+    <link href="/js/miniui/themes/default/miniui.css" rel="stylesheet" type="text/css" />
+    <script src="/js/miniui/miniui.js" type="text/javascript"></script>
+    <script src="/js/boot.js" type="text/javascript"></script>
+
+    <!--引入layer-->
+    <script src="js/layerJs/layer.js"></script>
+</head>
+<body>
+    <div id="layout1" class="mini-layout" style="width:100%;height:710px;">
+        <div class="header" region="north" height="80px" showSplit="false" showHeader="true">
+            <h1 style="color: #fff;float: left">
+                &nbsp;&nbsp;&nbsp;&nbsp;图书管理系统
+                <img style="margin:1px 10px 0 30px;vertical-align: middle"  src=""
+                     id="headImage"
+                     class="radius-circle rotate-hover"
+                     height="50px" alt="头像无法加载" />
+                
+            </h1>
+            <h4 style="float: right;color: #fff;line-height:50px;margin-right: 100px ">
+                欢迎  | <span id="username" style="font-family: 幼圆;color: #FFFFFF;font-size: 20px;font-weight: bold;">
+                     </span>
+                &nbsp;&nbsp;&nbsp;
+                <a href="javascript:void(0)" id="loginOut" title="安全退出">
+                    <span class="icon icon-sign-out"></span>
+                </a>
+            </h4>
+        </div>
+        <div title="south" region="south" showSplit="false" showHeader="false" height="40px" >    
+            <h3 style="text-align: center;">Copyright &copy; 无锡学院363班 | 版权所有</h3>
+        </div>
+        <div title="center" region="center" bodyStyle="overflow:hidden;">    
+            <!--Splitter-->
+            <div class="mini-splitter" style="width:100%;height:100%;" borderStyle="border:0;">
+                <!--左侧菜单栏-->
+                <div size="180px" maxSize="250px" minSize="100px" showCollapseButton="true">
+                    <div id="leftTree" class="mini-outlookmenu" url="/data/menu.json" onitemselect="onItemSelect"
+                        idField="id" parentField="pid" textField="text">
+                    </div>
+                </div>
+                <!--右侧列表页-->
+                <div showCollapseButton="false">
+                    <iframe id="mainframe" frameborder="0" name="main" style="width:100%;height:100%;" border="0"></iframe>
+                </div>        
+            </div>
+        </div>
+    </div> 
+</body>
+</html>
+<script>
+   
+
+    function onItemSelect(e) {
+        let item = e.item;
+        iframe.src = item.url;
+    }
+
+    // 异步请求 获取登录成功后的用户名
+    $.get("user?method=getLoginUsername",function(data){
+        // console.log(data);
+        $("#username").html(data.t.username);
+        $("#headImage").attr('src',data.t.img);
+    },'json');
+
+    // 给退出绑定点击事件
+    $("#loginOut").on('click',function(){
+        if(confirm("你确定要退出吗？")){
+            location.href = "user?method=loginOut";
+        }
+    })
+
+    // 右侧显示列表
+    var iframe = document.getElementById("mainframe");
+    iframe.src="/background.html"
+
+</script>
